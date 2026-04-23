@@ -1,5 +1,6 @@
--- [[ ROBLOX SCRIPT: Kasistral 7b V7 - ANTI-DETECTION & ELITE FARM ]]
--- Desenvolvido para bypass do Anti-Cheat KLZ v3.5 detectado no console.
+-- [[ ROBLOX SCRIPT: Kasistral 7b V8 - STEALTH & SILENT AIM ]]
+-- Versão focada em furtividade total para evitar o erro "anti kick 5".
+-- Removido hooks agressivos de Anti-Kick que estavam sendo detectados.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,45 +9,25 @@ local VirtualUser = game:GetService("VirtualUser")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- [[ BYPASS DE ANTI-CHEAT AVANÇADO (KLZ v3.5) ]]
+-- [[ BYPASS SILENCIOSO ]]
+-- Bloqueamos apenas o envio de logs de detecção, sem tentar travar o Kick (que é detectável)
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
-local oldIndex = mt.__index
 setreadonly(mt, false)
 
--- Hook de Namecall para bloquear Kick e RemoteEvents de Detecção
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
-    local args = {...}
-
-    -- Bloqueia expulsão do jogo
-    if tostring(method) == "Kick" or tostring(method) == "kick" then
-        return wait(9e9)
-    end
-    
-    -- Bloqueia o envio de logs de detecção para o servidor
     if tostring(method) == "FireServer" then
         local rName = tostring(self.Name):lower()
-        if rName:find("cheat") or rName:find("detect") or rName:find("ban") or rName:find("klz") or rName:find("kick") then
+        -- Bloqueia apenas remotos conhecidos de detecção/report
+        if rName:find("cheat") or rName:find("detect") or rName:find("klz") or rName:find("report") then
             return nil
         end
     end
-
-    return oldNamecall(self, unpack(args))
-end)
-
--- Hook de Index para esconder mudanças na Câmera e FOV
-mt.__index = newcclosure(function(self, key)
-    if not checkcaller() then
-        if key == "CFrame" and self:IsA("Camera") then
-            return oldIndex(self, key)
-        end
-    end
-    return oldIndex(self, key)
+    return oldNamecall(self, ...)
 end)
 
 setreadonly(mt, true)
-warn("[Kasistral 7b] Bypass de Anti-Cheat KLZ v3.5 Ativado.")
 
 -- [[ VARIÁVEIS DE ESTADO ]]
 local espLinesEnabled = false
@@ -58,11 +39,11 @@ local infJumpEnabled = false
 local flyEnabled = false
 local autoClickerEnabled = false
 local antiAFKEnabled = true 
-local flySpeed = 50
+local flySpeed = 45 -- Reduzido levemente para evitar detecção de velocidade
 
--- [[ CONFIGURAÇÃO DO AIMBOT HUMANIZADO ]]
-local aimSmoothing = 0.25 -- Aumentado para parecer mais humano e evitar detecção
-local headOffset = Vector3.new(0, -0.25, 0) -- Ajuste fino para o centro do rosto
+-- [[ CONFIGURAÇÃO DO AIMBOT ULTRA-SUAVE ]]
+local aimSmoothing = 0.35 -- Aumentado para 0.35 (Mais lento = Mais seguro)
+local headOffset = Vector3.new(0, -0.25, 0) 
 
 -- [[ CONFIGURAÇÃO DO FOV ]]
 local fovCircle = Drawing.new("Circle")
@@ -82,7 +63,7 @@ local OpenButton = Instance.new("TextButton")
 local ScrollingFrame = Instance.new("ScrollingFrame")
 local UIListLayout = Instance.new("UIListLayout")
 
-ScreenGui.Name = "Kasistral7b_V7"
+ScreenGui.Name = "Kasistral7b_V8"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -114,7 +95,7 @@ TitleLabel.Parent = MainFrame
 TitleLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 TitleLabel.Size = UDim2.new(1, 0, 0, 45)
 TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.Text = "Kasistral 7b V7"
+TitleLabel.Text = "Kasistral 7b V8"
 TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
 TitleLabel.TextSize = 18
 
@@ -321,7 +302,7 @@ local function getClosest()
 end
 
 -- [[ BOTÕES ]]
-createToggle("AimbotToggle", "Aimbot Humanizado", false, function(v) aimbotEnabled = v end)
+createToggle("AimbotToggle", "Aimbot Ultra-Suave", false, function(v) aimbotEnabled = v end)
 createToggle("FOVToggle", "Show FOV (60)", false, function(v) showFOV = v end)
 createToggle("LineToggle", "ESP Lines", false, function(v) espLinesEnabled = v end)
 createToggle("BoxToggle", "ESP Box", false, function(v) espBoxEnabled = v end)
@@ -355,6 +336,122 @@ Players.PlayerRemoving:Connect(function(p)
         objects[p] = nil 
     end 
 end)
+-- [[ ROBLOX SCRIPT: Kasistral 7b V8 - STEALTH & SILENT AIM ]]
+-- Versão focada em furtividade total para evitar o erro "anti kick 5".
+-- Removido hooks agressivos de Anti-Kick que estavam sendo detectados.
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualUser = game:GetService("VirtualUser")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+-- [[ BYPASS SILENCIOSO ]]
+-- Bloqueamos apenas o envio de logs de detecção, sem tentar travar o Kick (que é detectável)
+local mt = getrawmetatable(game)
+local oldNamecall = mt.__namecall
+setreadonly(mt, false)
+
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    if tostring(method) == "FireServer" then
+        local rName = tostring(self.Name):lower()
+        -- Bloqueia apenas remotos conhecidos de detecção/report
+        if rName:find("cheat") or rName:find("detect") or rName:find("klz") or rName:find("report") then
+            return nil
+        end
+    end
+    return oldNamecall(self, ...)
+end)
+
+setreadonly(mt, true)
+
+-- [[ VARIÁVEIS DE ESTADO ]]
+local espLinesEnabled = false
+local espBoxEnabled = false
+local espSkeletonEnabled = false
+local aimbotEnabled = false
+local showFOV = false
+local infJumpEnabled = false
+local flyEnabled = false
+local autoClickerEnabled = false
+local antiAFKEnabled = true 
+local flySpeed = 45 -- Reduzido levemente para evitar detecção de velocidade
+
+-- [[ CONFIGURAÇÃO DO AIMBOT ULTRA-SUAVE ]]
+local aimSmoothing = 0.35 -- Aumentado para 0.35 (Mais lento = Mais seguro)
+local headOffset = Vector3.new(0, -0.25, 0) 
+
+-- [[ CONFIGURAÇÃO DO FOV ]]
+local fovCircle = Drawing.new("Circle")
+fovCircle.Visible = false
+fovCircle.Radius = 60
+fovCircle.Color = Color3.fromRGB(0, 255, 255)
+fovCircle.Thickness = 1
+fovCircle.Filled = false
+fovCircle.Transparency = 1
+
+-- [[ CONFIGURAÇÃO DA UI ]]
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local TitleLabel = Instance.new("TextLabel")
+local CloseButton = Instance.new("TextButton")
+local OpenButton = Instance.new("TextButton")
+local ScrollingFrame = Instance.new("ScrollingFrame")
+local UIListLayout = Instance.new("UIListLayout")
+
+ScreenGui.Name = "Kasistral7b_V8"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ResetOnSpawn = false
+
+OpenButton.Name = "OpenButton"
+OpenButton.Parent = ScreenGui
+OpenButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+OpenButton.BorderSizePixel = 2
+OpenButton.BorderColor3 = Color3.fromRGB(0, 255, 255)
+OpenButton.Position = UDim2.new(0, 10, 0.5, -20)
+OpenButton.Size = UDim2.new(0, 80, 0, 40)
+OpenButton.Text = "MENU"
+OpenButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+OpenButton.Font = Enum.Font.GothamBold
+OpenButton.TextSize = 14
+OpenButton.Draggable = true
+
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -175)
+MainFrame.Size = UDim2.new(0, 300, 0, 380)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Visible = true
+
+TitleLabel.Name = "Title"
+TitleLabel.Parent = MainFrame
+TitleLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+TitleLabel.Size = UDim2.new(1, 0, 0, 45)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Text = "Kasistral 7b V8"
+TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+TitleLabel.TextSize = 18
+
+CloseButton.Name = "CloseButton"
+CloseButton.Parent = MainFrame
+CloseButton.BackgroundColor3 = Color3.fromRGB(150, 30, 30)
+CloseButton.Position = UDim2.new(1, -35, 0, 7)
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Font = Enum.Font.GothamBold
+
+ScrollingFrame.Name = "ScrollingFrame"
+ScrollingFrame.Parent = MainFrame
+ScrollingFrame.BackgroundTransparency = 1
+ScrollingFrame.Position = UDim2.new(0, 10, 0, 55)
+ScrollingFrame.Size = UDim2.new(1, -20, 1, -65)
+ScrollingFrame.CanvasSize = UDim2.new(0, 0, 2.2, 0)
 ScrollingFrame.ScrollBarThickness = 4
 
 UIListLayout.Parent = ScrollingFrame
@@ -366,7 +463,7 @@ local function createToggle(name, text, default, callback)
     btn.Name = name
     btn.Parent = ScrollingFrame
     btn.Size = UDim2.new(0.95, 0, 0, 40)
-    btn.BackgroundColor3 = default and Color3.fromRGB(0, 120, 120) or Color3.fromRGB(40, 40, 40)
+    btn.BackgroundColor3 = default and Color3.fromRGB(0, 100, 100) or Color3.fromRGB(30, 30, 30)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Text = text .. ": " .. (default and "ON" or "OFF")
     btn.Font = Enum.Font.Gotham
@@ -377,29 +474,24 @@ local function createToggle(name, text, default, callback)
     btn.MouseButton1Click:Connect(function()
         enabled = not enabled
         btn.Text = text .. ": " .. (enabled and "ON" or "OFF")
-        btn.BackgroundColor3 = enabled and Color3.fromRGB(0, 120, 120) or Color3.fromRGB(40, 40, 40)
+        btn.BackgroundColor3 = enabled and Color3.fromRGB(0, 100, 100) or Color3.fromRGB(30, 30, 30)
         callback(enabled)
     end)
     return btn
 end
 
--- FECHAR/ABRIR UI
 local function toggleUI() MainFrame.Visible = not MainFrame.Visible end
 CloseButton.MouseButton1Click:Connect(toggleUI)
 OpenButton.MouseButton1Click:Connect(toggleUI)
-UserInputService.InputBegan:Connect(function(i, g) if not g and i.KeyCode == Enum.KeyCode.Insert then toggleUI() end end)
 
--- [[ FUNÇÕES DE FARM E MOVIMENTAÇÃO ]]
--- Anti-AFK Real
+-- [[ FUNÇÕES STEALTH ]]
 LocalPlayer.Idled:Connect(function()
     if antiAFKEnabled then
-        VirtualUser:Button2Down(Vector2.new(0,0), Camera.CFrame)
-        wait(1)
-        VirtualUser:Button2Up(Vector2.new(0,0), Camera.CFrame)
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
     end
 end)
 
--- Auto Clicker (25ms)
 spawn(function()
     while wait(0.025) do
         if autoClickerEnabled then
@@ -410,10 +502,10 @@ spawn(function()
     end
 end)
 
--- Infinite Jump
 UserInputService.JumpRequest:Connect(function()
     if infJumpEnabled then
-        LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum:ChangeState("Jumping") end
     end
 end)
 
@@ -453,14 +545,13 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- [[ LÓGICA ESP (SKELETON, BOX, LINES, TEAM COLORS) ]]
+-- [[ LÓGICA ESP ]]
 local objects = {}
 local function createDrawings(player)
     local d = {Line = Drawing.new("Line"), Box = Drawing.new("Square"), Skeleton = {}}
     for i=1, 10 do d.Skeleton[i] = Drawing.new("Line") end
     d.Line.Thickness = 1
     d.Box.Thickness = 1
-    d.Box.Filled = false
     objects[player] = d
 end
 
@@ -548,8 +639,8 @@ local function getClosest()
     return target
 end
 
--- [[ CRIAÇÃO DOS BOTÕES ]]
-createToggle("AimbotToggle", "Aimbot (Head)", false, function(v) aimbotEnabled = v end)
+-- [[ BOTÕES ]]
+createToggle("AimbotToggle", "Aimbot Ultra-Suave", false, function(v) aimbotEnabled = v end)
 createToggle("FOVToggle", "Show FOV (60)", false, function(v) showFOV = v end)
 createToggle("LineToggle", "ESP Lines", false, function(v) espLinesEnabled = v end)
 createToggle("BoxToggle", "ESP Box", false, function(v) espBoxEnabled = v end)
@@ -564,10 +655,13 @@ RunService.RenderStepped:Connect(function()
     updateESP()
     fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     fovCircle.Visible = showFOV
+    
     if aimbotEnabled then
         local t = getClosest()
         if t and t.Character and t.Character:FindFirstChild("Head") then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, t.Character.Head.Position)
+            local targetPart = t.Character.Head
+            local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position + headOffset)
+            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, aimSmoothing)
         end
     end
 end)
