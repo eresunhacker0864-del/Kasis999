@@ -1,6 +1,5 @@
--- [[ ROBLOX SCRIPT: Kasistral 7b V8 - STEALTH & SILENT AIM ]]
--- Versão focada em furtividade total para evitar o erro "anti kick 5".
--- Removido hooks agressivos de Anti-Kick que estavam sendo detectados.
+-- [[ ROBLOX SCRIPT: Kasistral 7b V9 - HITBOX EDITION ]]
+-- Versão com função headhtb (Hitbox expandida na cabeça para tamanho 25).
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -10,23 +9,19 @@ local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
 -- [[ BYPASS SILENCIOSO ]]
--- Bloqueamos apenas o envio de logs de detecção, sem tentar travar o Kick (que é detectável)
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 setreadonly(mt, false)
-
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
     if tostring(method) == "FireServer" then
         local rName = tostring(self.Name):lower()
-        -- Bloqueia apenas remotos conhecidos de detecção/report
         if rName:find("cheat") or rName:find("detect") or rName:find("klz") or rName:find("report") then
             return nil
         end
     end
     return oldNamecall(self, ...)
 end)
-
 setreadonly(mt, true)
 
 -- [[ VARIÁVEIS DE ESTADO ]]
@@ -39,11 +34,12 @@ local infJumpEnabled = false
 local flyEnabled = false
 local autoClickerEnabled = false
 local antiAFKEnabled = true 
-local flySpeed = 45 -- Reduzido levemente para evitar detecção de velocidade
+local headHtbEnabled = false -- Nova função
+local flySpeed = 45
 
--- [[ CONFIGURAÇÃO DO AIMBOT ULTRA-SUAVE ]]
-local aimSmoothing = 0.35 -- Aumentado para 0.35 (Mais lento = Mais seguro)
-local headOffset = Vector3.new(0, -0.25, 0) 
+-- [[ CONFIGURAÇÃO DO AIMBOT & HITBOX ]]
+local aimSmoothing = 0.2 -- Ajustado para ser mais responsivo com a hitbox
+local headSize = 25 -- Tamanho solicitado pelo usuário
 
 -- [[ CONFIGURAÇÃO DO FOV ]]
 local fovCircle = Drawing.new("Circle")
@@ -63,7 +59,7 @@ local OpenButton = Instance.new("TextButton")
 local ScrollingFrame = Instance.new("ScrollingFrame")
 local UIListLayout = Instance.new("UIListLayout")
 
-ScreenGui.Name = "Kasistral7b_V8"
+ScreenGui.Name = "Kasistral7b_V9"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -95,7 +91,7 @@ TitleLabel.Parent = MainFrame
 TitleLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 TitleLabel.Size = UDim2.new(1, 0, 0, 45)
 TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.Text = "Kasistral 7b V8"
+TitleLabel.Text = "Kasistral 7b V9"
 TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
 TitleLabel.TextSize = 18
 
@@ -113,7 +109,7 @@ ScrollingFrame.Parent = MainFrame
 ScrollingFrame.BackgroundTransparency = 1
 ScrollingFrame.Position = UDim2.new(0, 10, 0, 55)
 ScrollingFrame.Size = UDim2.new(1, -20, 1, -65)
-ScrollingFrame.CanvasSize = UDim2.new(0, 0, 2.2, 0)
+ScrollingFrame.CanvasSize = UDim2.new(0, 0, 2.5, 0)
 ScrollingFrame.ScrollBarThickness = 4
 
 UIListLayout.Parent = ScrollingFrame
@@ -146,7 +142,24 @@ local function toggleUI() MainFrame.Visible = not MainFrame.Visible end
 CloseButton.MouseButton1Click:Connect(toggleUI)
 OpenButton.MouseButton1Click:Connect(toggleUI)
 
--- [[ FUNÇÕES STEALTH ]]
+-- [[ LÓGICA HITBOX (headhtb) ]]
+local function updateHitboxes()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+            local head = p.Character.Head
+            if headHtbEnabled then
+                head.Size = Vector3.new(headSize, headSize, headSize)
+                head.Transparency = 0.5 -- Deixa um pouco transparente para ver o "quadrado"
+                head.CanCollide = false
+            else
+                head.Size = Vector3.new(1, 1, 1) -- Tamanho padrão (ajustar se o jogo for diferente)
+                head.Transparency = 0
+            end
+        end
+    end
+end
+
+-- [[ FUNÇÕES STEALTH & FARM ]]
 LocalPlayer.Idled:Connect(function()
     if antiAFKEnabled then
         VirtualUser:CaptureController()
@@ -302,7 +315,8 @@ local function getClosest()
 end
 
 -- [[ BOTÕES ]]
-createToggle("AimbotToggle", "Aimbot Ultra-Suave", false, function(v) aimbotEnabled = v end)
+createToggle("HeadHtbToggle", "headhtb (Size 25)", false, function(v) headHtbEnabled = v end)
+createToggle("AimbotToggle", "Aimbot (Head)", false, function(v) aimbotEnabled = v end)
 createToggle("FOVToggle", "Show FOV (60)", false, function(v) showFOV = v end)
 createToggle("LineToggle", "ESP Lines", false, function(v) espLinesEnabled = v end)
 createToggle("BoxToggle", "ESP Box", false, function(v) espBoxEnabled = v end)
@@ -315,6 +329,7 @@ createToggle("AFKToggle", "Anti-AFK Real", true, function(v) antiAFKEnabled = v 
 -- [[ LOOP PRINCIPAL ]]
 RunService.RenderStepped:Connect(function()
     updateESP()
+    updateHitboxes() -- Atualiza o tamanho das cabeças
     fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     fovCircle.Visible = showFOV
     
@@ -322,7 +337,7 @@ RunService.RenderStepped:Connect(function()
         local t = getClosest()
         if t and t.Character and t.Character:FindFirstChild("Head") then
             local targetPart = t.Character.Head
-            local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position + headOffset)
+            local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
             Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, aimSmoothing)
         end
     end
@@ -336,341 +351,4 @@ Players.PlayerRemoving:Connect(function(p)
         objects[p] = nil 
     end 
 end)
--- [[ ROBLOX SCRIPT: Kasistral 7b V8 - STEALTH & SILENT AIM ]]
--- Versão focada em furtividade total para evitar o erro "anti kick 5".
--- Removido hooks agressivos de Anti-Kick que estavam sendo detectados.
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local VirtualUser = game:GetService("VirtualUser")
-local Camera = workspace.CurrentCamera
-local LocalPlayer = Players.LocalPlayer
-
--- [[ BYPASS SILENCIOSO ]]
--- Bloqueamos apenas o envio de logs de detecção, sem tentar travar o Kick (que é detectável)
-local mt = getrawmetatable(game)
-local oldNamecall = mt.__namecall
-setreadonly(mt, false)
-
-mt.__namecall = newcclosure(function(self, ...)
-    local method = getnamecallmethod()
-    if tostring(method) == "FireServer" then
-        local rName = tostring(self.Name):lower()
-        -- Bloqueia apenas remotos conhecidos de detecção/report
-        if rName:find("cheat") or rName:find("detect") or rName:find("klz") or rName:find("report") then
-            return nil
-        end
-    end
-    return oldNamecall(self, ...)
-end)
-
-setreadonly(mt, true)
-
--- [[ VARIÁVEIS DE ESTADO ]]
-local espLinesEnabled = false
-local espBoxEnabled = false
-local espSkeletonEnabled = false
-local aimbotEnabled = false
-local showFOV = false
-local infJumpEnabled = false
-local flyEnabled = false
-local autoClickerEnabled = false
-local antiAFKEnabled = true 
-local flySpeed = 45 -- Reduzido levemente para evitar detecção de velocidade
-
--- [[ CONFIGURAÇÃO DO AIMBOT ULTRA-SUAVE ]]
-local aimSmoothing = 0.35 -- Aumentado para 0.35 (Mais lento = Mais seguro)
-local headOffset = Vector3.new(0, -0.25, 0) 
-
--- [[ CONFIGURAÇÃO DO FOV ]]
-local fovCircle = Drawing.new("Circle")
-fovCircle.Visible = false
-fovCircle.Radius = 60
-fovCircle.Color = Color3.fromRGB(0, 255, 255)
-fovCircle.Thickness = 1
-fovCircle.Filled = false
-fovCircle.Transparency = 1
-
--- [[ CONFIGURAÇÃO DA UI ]]
-local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local TitleLabel = Instance.new("TextLabel")
-local CloseButton = Instance.new("TextButton")
-local OpenButton = Instance.new("TextButton")
-local ScrollingFrame = Instance.new("ScrollingFrame")
-local UIListLayout = Instance.new("UIListLayout")
-
-ScreenGui.Name = "Kasistral7b_V8"
-ScreenGui.Parent = game.CoreGui
-ScreenGui.ResetOnSpawn = false
-
-OpenButton.Name = "OpenButton"
-OpenButton.Parent = ScreenGui
-OpenButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-OpenButton.BorderSizePixel = 2
-OpenButton.BorderColor3 = Color3.fromRGB(0, 255, 255)
-OpenButton.Position = UDim2.new(0, 10, 0.5, -20)
-OpenButton.Size = UDim2.new(0, 80, 0, 40)
-OpenButton.Text = "MENU"
-OpenButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-OpenButton.Font = Enum.Font.GothamBold
-OpenButton.TextSize = 14
-OpenButton.Draggable = true
-
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-MainFrame.BorderSizePixel = 0
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -175)
-MainFrame.Size = UDim2.new(0, 300, 0, 380)
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Visible = true
-
-TitleLabel.Name = "Title"
-TitleLabel.Parent = MainFrame
-TitleLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-TitleLabel.Size = UDim2.new(1, 0, 0, 45)
-TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.Text = "Kasistral 7b V8"
-TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
-TitleLabel.TextSize = 18
-
-CloseButton.Name = "CloseButton"
-CloseButton.Parent = MainFrame
-CloseButton.BackgroundColor3 = Color3.fromRGB(150, 30, 30)
-CloseButton.Position = UDim2.new(1, -35, 0, 7)
-CloseButton.Size = UDim2.new(0, 30, 0, 30)
-CloseButton.Text = "X"
-CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseButton.Font = Enum.Font.GothamBold
-
-ScrollingFrame.Name = "ScrollingFrame"
-ScrollingFrame.Parent = MainFrame
-ScrollingFrame.BackgroundTransparency = 1
-ScrollingFrame.Position = UDim2.new(0, 10, 0, 55)
-ScrollingFrame.Size = UDim2.new(1, -20, 1, -65)
-ScrollingFrame.CanvasSize = UDim2.new(0, 0, 2.2, 0)
-ScrollingFrame.ScrollBarThickness = 4
-
-UIListLayout.Parent = ScrollingFrame
-UIListLayout.Padding = UDim.new(0, 10)
-UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
-local function createToggle(name, text, default, callback)
-    local btn = Instance.new("TextButton")
-    btn.Name = name
-    btn.Parent = ScrollingFrame
-    btn.Size = UDim2.new(0.95, 0, 0, 40)
-    btn.BackgroundColor3 = default and Color3.fromRGB(0, 100, 100) or Color3.fromRGB(30, 30, 30)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Text = text .. ": " .. (default and "ON" or "OFF")
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 14
-    btn.BorderSizePixel = 0
-    
-    local enabled = default
-    btn.MouseButton1Click:Connect(function()
-        enabled = not enabled
-        btn.Text = text .. ": " .. (enabled and "ON" or "OFF")
-        btn.BackgroundColor3 = enabled and Color3.fromRGB(0, 100, 100) or Color3.fromRGB(30, 30, 30)
-        callback(enabled)
-    end)
-    return btn
-end
-
-local function toggleUI() MainFrame.Visible = not MainFrame.Visible end
-CloseButton.MouseButton1Click:Connect(toggleUI)
-OpenButton.MouseButton1Click:Connect(toggleUI)
-
--- [[ FUNÇÕES STEALTH ]]
-LocalPlayer.Idled:Connect(function()
-    if antiAFKEnabled then
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new())
-    end
-end)
-
-spawn(function()
-    while wait(0.025) do
-        if autoClickerEnabled then
-            VirtualUser:Button1Down(Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2), Camera.CFrame)
-            wait(0.01)
-            VirtualUser:Button1Up(Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2), Camera.CFrame)
-        end
-    end
-end)
-
-UserInputService.JumpRequest:Connect(function()
-    if infJumpEnabled then
-        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum:ChangeState("Jumping") end
-    end
-end)
-
--- Fly Logic
-local flyBodyVel, flyBodyGyro
-local function startFly()
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    local hrp = char.HumanoidRootPart
-    flyBodyVel = Instance.new("BodyVelocity", hrp)
-    flyBodyVel.Velocity = Vector3.new(0, 0, 0)
-    flyBodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    flyBodyGyro = Instance.new("BodyGyro", hrp)
-    flyBodyGyro.P = 9e4
-    flyBodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-    flyBodyGyro.CFrame = hrp.CFrame
-end
-
-local function stopFly()
-    if flyBodyVel then flyBodyVel:Destroy() end
-    if flyBodyGyro then flyBodyGyro:Destroy() end
-end
-
-RunService.RenderStepped:Connect(function()
-    if flyEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local hrp = LocalPlayer.Character.HumanoidRootPart
-        local camCF = Camera.CFrame
-        local dir = Vector3.new(0, 0, 0)
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + camCF.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - camCF.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - camCF.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + camCF.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0, 1, 0) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir = dir - Vector3.new(0, 1, 0) end
-        flyBodyVel.Velocity = dir * flySpeed
-        flyBodyGyro.CFrame = camCF
-    end
-end)
-
--- [[ LÓGICA ESP ]]
-local objects = {}
-local function createDrawings(player)
-    local d = {Line = Drawing.new("Line"), Box = Drawing.new("Square"), Skeleton = {}}
-    for i=1, 10 do d.Skeleton[i] = Drawing.new("Line") end
-    d.Line.Thickness = 1
-    d.Box.Thickness = 1
-    objects[player] = d
-end
-
-local function updateESP()
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            if not objects[p] then createDrawings(p) end
-            local d = objects[p]
-            local char = p.Character
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            local hum = char:FindFirstChild("Humanoid")
-            local head = char:FindFirstChild("Head")
-            local teamColor = p.TeamColor.Color or Color3.fromRGB(255, 255, 255)
-            if hum and hum.Health > 0 and hrp and head then
-                local hrpPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-                if onScreen then
-                    d.Line.Visible = espLinesEnabled
-                    d.Line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                    d.Line.To = Vector2.new(hrpPos.X, hrpPos.Y)
-                    d.Line.Color = teamColor
-                    d.Box.Visible = espBoxEnabled
-                    local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
-                    local legPos = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
-                    d.Box.Size = Vector2.new(2500 / hrpPos.Z, headPos.Y - legPos.Y)
-                    d.Box.Position = Vector2.new(hrpPos.X - d.Box.Size.X / 2, hrpPos.Y - d.Box.Size.Y / 2)
-                    d.Box.Color = teamColor
-                else
-                    d.Line.Visible = false
-                    d.Box.Visible = false
-                end
-                if espSkeletonEnabled and onScreen then
-                    local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
-                    if torso then
-                        local p1 = Camera:WorldToViewportPoint(head.Position)
-                        local p2 = Camera:WorldToViewportPoint(torso.Position)
-                        d.Skeleton[1].Visible = true
-                        d.Skeleton[1].From = Vector2.new(p1.X, p1.Y)
-                        d.Skeleton[1].To = Vector2.new(p2.X, p2.Y)
-                        d.Skeleton[1].Color = teamColor
-                    else d.Skeleton[1].Visible = false end
-                else
-                    for i=1, #d.Skeleton do d.Skeleton[i].Visible = false end
-                end
-            else
-                d.Line.Visible = false
-                d.Box.Visible = false
-                for i=1, #d.Skeleton do d.Skeleton[i].Visible = false end
-            end
-        elseif objects[p] then
-            objects[p].Line.Visible = false
-            objects[p].Box.Visible = false
-            for i=1, #objects[p].Skeleton do objects[p].Skeleton[i].Visible = false end
-        end
-    end
-end
-
--- [[ LÓGICA AIMBOT ]]
-local function isVisible(part)
-    local char = LocalPlayer.Character
-    if not char then return false end
-    local params = RaycastParams.new()
-    params.FilterDescendantsInstances = {char, Camera}
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    local result = workspace:Raycast(Camera.CFrame.Position, (part.Position - Camera.CFrame.Position).Unit * 1000, params)
-    return result and result.Instance:IsDescendantOf(part.Parent)
-end
-
-local function getClosest()
-    local target, dist = nil, math.huge
-    local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
-            local head = p.Character.Head
-            if isVisible(head) then
-                local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
-                if onScreen then
-                    local d = (Vector2.new(pos.X, pos.Y) - center).Magnitude
-                    if d <= fovCircle.Radius and d < dist then
-                        target, dist = p, d
-                    end
-                end
-            end
-        end
-    end
-    return target
-end
-
--- [[ BOTÕES ]]
-createToggle("AimbotToggle", "Aimbot Ultra-Suave", false, function(v) aimbotEnabled = v end)
-createToggle("FOVToggle", "Show FOV (60)", false, function(v) showFOV = v end)
-createToggle("LineToggle", "ESP Lines", false, function(v) espLinesEnabled = v end)
-createToggle("BoxToggle", "ESP Box", false, function(v) espBoxEnabled = v end)
-createToggle("SkeletonToggle", "ESP Skeleton", false, function(v) espSkeletonEnabled = v end)
-createToggle("JumpToggle", "Infinite Jump", false, function(v) infJumpEnabled = v end)
-createToggle("FlyToggle", "Fly (Voo)", false, function(v) flyEnabled = v if v then startFly() else stopFly() end end)
-createToggle("ClickerToggle", "Auto Clicker (25ms)", false, function(v) autoClickerEnabled = v end)
-createToggle("AFKToggle", "Anti-AFK Real", true, function(v) antiAFKEnabled = v end)
-
--- [[ LOOP PRINCIPAL ]]
-RunService.RenderStepped:Connect(function()
-    updateESP()
-    fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    fovCircle.Visible = showFOV
-    
-    if aimbotEnabled then
-        local t = getClosest()
-        if t and t.Character and t.Character:FindFirstChild("Head") then
-            local targetPart = t.Character.Head
-            local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position + headOffset)
-            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, aimSmoothing)
-        end
-    end
-end)
-
-Players.PlayerRemoving:Connect(function(p) 
-    if objects[p] then 
-        objects[p].Line:Remove() 
-        objects[p].Box:Remove() 
-        for i=1, #objects[p].Skeleton do objects[p].Skeleton[i]:Remove() end
-        objects[p] = nil 
-    end 
-end)
