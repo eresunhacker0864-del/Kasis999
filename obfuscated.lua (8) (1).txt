@@ -1,6 +1,5 @@
--- [[ ROBLOX SCRIPT: Kasistral 7b V10 - SILENT EDITION ]]
--- Versão final focada em Silent Aim e Spoofing para evitar o erro "headsize?".
--- Removido alteração física de tamanho de peças para máxima segurança.
+-- [[ ROBLOX SCRIPT: Kasistral 7b V10 - SILENT TORSO EDITION ]]
+-- Versão focada em Silent Aim no Torso para máxima furtividade.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -9,38 +8,25 @@ local VirtualUser = game:GetService("VirtualUser")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- [[ BYPASS & SPOOFING AVANÇADO ]]
+-- [[ BYPASS & SPOOFING ]]
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 local oldIndex = mt.__index
 setreadonly(mt, false)
 
--- Hook para esconder mudanças e bloquear detecções
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
-    local args = {...}
-
     if tostring(method) == "FireServer" then
         local rName = tostring(self.Name):lower()
         if rName:find("cheat") or rName:find("detect") or rName:find("klz") or rName:find("report") then
             return nil
         end
     end
-    
-    -- Silent Aim Hook (Intercepta o tiro para redirecionar)
-    if tostring(method) == "FindPartOnRayWithIgnoreList" or tostring(method) == "Raycast" then
-        -- Lógica de redirecionamento silencioso pode ser adicionada aqui dependendo do sistema de armas do jogo
-    end
-
     return oldNamecall(self, ...)
 end)
 
--- Spoofing: Se o jogo tentar ler o tamanho da cabeça, retornamos o valor normal (1,1,1)
 mt.__index = newcclosure(function(self, key)
     if not checkcaller() then
-        if key == "Size" and self.Name == "Head" then
-            return Vector3.new(1, 1, 1)
-        end
         if key == "CFrame" and self:IsA("Camera") then
             return oldIndex(self, key)
         end
@@ -80,7 +66,7 @@ local OpenButton = Instance.new("TextButton")
 local ScrollingFrame = Instance.new("ScrollingFrame")
 local UIListLayout = Instance.new("UIListLayout")
 
-ScreenGui.Name = "Kasistral7b_V10"
+ScreenGui.Name = "Kasistral7b_V10_Torso"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -287,16 +273,17 @@ local function updateESP()
     end
 end
 
--- [[ LÓGICA SILENT AIM ]]
+-- [[ LÓGICA SILENT AIM (TORSO) ]]
 local function getClosest()
     local target, dist = nil, math.huge
     local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
-            local head = p.Character.Head
+        if p ~= LocalPlayer and p.Character then
+            -- FOCA NO TORSO (UpperTorso ou Torso padrão)
+            local torso = p.Character:FindFirstChild("UpperTorso") or p.Character:FindFirstChild("Torso")
             local hum = p.Character:FindFirstChild("Humanoid")
-            if hum and hum.Health > 0 then
-                local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
+            if torso and hum and hum.Health > 0 then
+                local pos, onScreen = Camera:WorldToViewportPoint(torso.Position)
                 if onScreen then
                     local d = (Vector2.new(pos.X, pos.Y) - center).Magnitude
                     if d <= fovCircle.Radius and d < dist then
@@ -310,7 +297,7 @@ local function getClosest()
 end
 
 -- [[ BOTÕES ]]
-createToggle("SilentAimToggle", "Silent Aim (Safe)", false, function(v) silentAimEnabled = v end)
+createToggle("SilentAimToggle", "Silent Aim (Torso)", false, function(v) silentAimEnabled = v end)
 createToggle("FOVToggle", "Show FOV (60)", false, function(v) showFOV = v end)
 createToggle("LineToggle", "ESP Lines", false, function(v) espLinesEnabled = v end)
 createToggle("BoxToggle", "ESP Box", false, function(v) espBoxEnabled = v end)
@@ -328,10 +315,11 @@ RunService.RenderStepped:Connect(function()
     
     if silentAimEnabled then
         local t = getClosest()
-        if t and t.Character and t.Character:FindFirstChild("Head") then
-            -- Silent Aim: Trava a câmera suavemente ou redireciona o input
-            local targetPart = t.Character.Head
-            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPart.Position), 0.2)
+        if t and t.Character then
+            local targetPart = t.Character:FindFirstChild("UpperTorso") or t.Character:FindFirstChild("Torso")
+            if targetPart then
+                Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPart.Position), 0.2)
+            end
         end
     end
 end)
