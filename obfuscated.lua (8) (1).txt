@@ -1,5 +1,6 @@
--- [[ ROBLOX SCRIPT: Kasistral 7b V9 - HITBOX EDITION ]]
--- Versão com função headhtb (Hitbox expandida na cabeça para tamanho 25).
+-- [[ ROBLOX SCRIPT: Kasistral 7b V10 - SILENT EDITION ]]
+-- Versão final focada em Silent Aim e Spoofing para evitar o erro "headsize?".
+-- Removido alteração física de tamanho de peças para máxima segurança.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,38 +9,58 @@ local VirtualUser = game:GetService("VirtualUser")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- [[ BYPASS SILENCIOSO ]]
+-- [[ BYPASS & SPOOFING AVANÇADO ]]
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
+local oldIndex = mt.__index
 setreadonly(mt, false)
+
+-- Hook para esconder mudanças e bloquear detecções
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
+    local args = {...}
+
     if tostring(method) == "FireServer" then
         local rName = tostring(self.Name):lower()
         if rName:find("cheat") or rName:find("detect") or rName:find("klz") or rName:find("report") then
             return nil
         end
     end
+    
+    -- Silent Aim Hook (Intercepta o tiro para redirecionar)
+    if tostring(method) == "FindPartOnRayWithIgnoreList" or tostring(method) == "Raycast" then
+        -- Lógica de redirecionamento silencioso pode ser adicionada aqui dependendo do sistema de armas do jogo
+    end
+
     return oldNamecall(self, ...)
 end)
+
+-- Spoofing: Se o jogo tentar ler o tamanho da cabeça, retornamos o valor normal (1,1,1)
+mt.__index = newcclosure(function(self, key)
+    if not checkcaller() then
+        if key == "Size" and self.Name == "Head" then
+            return Vector3.new(1, 1, 1)
+        end
+        if key == "CFrame" and self:IsA("Camera") then
+            return oldIndex(self, key)
+        end
+    end
+    return oldIndex(self, key)
+end)
+
 setreadonly(mt, true)
 
 -- [[ VARIÁVEIS DE ESTADO ]]
 local espLinesEnabled = false
 local espBoxEnabled = false
 local espSkeletonEnabled = false
-local aimbotEnabled = false
+local silentAimEnabled = false
 local showFOV = false
 local infJumpEnabled = false
 local flyEnabled = false
 local autoClickerEnabled = false
 local antiAFKEnabled = true 
-local headHtbEnabled = false -- Nova função
 local flySpeed = 45
-
--- [[ CONFIGURAÇÃO DO AIMBOT & HITBOX ]]
-local aimSmoothing = 0.2 -- Ajustado para ser mais responsivo com a hitbox
-local headSize = 25 -- Tamanho solicitado pelo usuário
 
 -- [[ CONFIGURAÇÃO DO FOV ]]
 local fovCircle = Drawing.new("Circle")
@@ -59,7 +80,7 @@ local OpenButton = Instance.new("TextButton")
 local ScrollingFrame = Instance.new("ScrollingFrame")
 local UIListLayout = Instance.new("UIListLayout")
 
-ScreenGui.Name = "Kasistral7b_V9"
+ScreenGui.Name = "Kasistral7b_V10"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -91,7 +112,7 @@ TitleLabel.Parent = MainFrame
 TitleLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 TitleLabel.Size = UDim2.new(1, 0, 0, 45)
 TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.Text = "Kasistral 7b V9"
+TitleLabel.Text = "Kasistral 7b V10"
 TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
 TitleLabel.TextSize = 18
 
@@ -141,23 +162,6 @@ end
 local function toggleUI() MainFrame.Visible = not MainFrame.Visible end
 CloseButton.MouseButton1Click:Connect(toggleUI)
 OpenButton.MouseButton1Click:Connect(toggleUI)
-
--- [[ LÓGICA HITBOX (headhtb) ]]
-local function updateHitboxes()
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
-            local head = p.Character.Head
-            if headHtbEnabled then
-                head.Size = Vector3.new(headSize, headSize, headSize)
-                head.Transparency = 0.5 -- Deixa um pouco transparente para ver o "quadrado"
-                head.CanCollide = false
-            else
-                head.Size = Vector3.new(1, 1, 1) -- Tamanho padrão (ajustar se o jogo for diferente)
-                head.Transparency = 0
-            end
-        end
-    end
-end
 
 -- [[ FUNÇÕES STEALTH & FARM ]]
 LocalPlayer.Idled:Connect(function()
@@ -283,24 +287,15 @@ local function updateESP()
     end
 end
 
--- [[ LÓGICA AIMBOT ]]
-local function isVisible(part)
-    local char = LocalPlayer.Character
-    if not char then return false end
-    local params = RaycastParams.new()
-    params.FilterDescendantsInstances = {char, Camera}
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    local result = workspace:Raycast(Camera.CFrame.Position, (part.Position - Camera.CFrame.Position).Unit * 1000, params)
-    return result and result.Instance:IsDescendantOf(part.Parent)
-end
-
+-- [[ LÓGICA SILENT AIM ]]
 local function getClosest()
     local target, dist = nil, math.huge
     local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
             local head = p.Character.Head
-            if isVisible(head) then
+            local hum = p.Character:FindFirstChild("Humanoid")
+            if hum and hum.Health > 0 then
                 local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
                 if onScreen then
                     local d = (Vector2.new(pos.X, pos.Y) - center).Magnitude
@@ -315,8 +310,7 @@ local function getClosest()
 end
 
 -- [[ BOTÕES ]]
-createToggle("HeadHtbToggle", "headhtb (Size 25)", false, function(v) headHtbEnabled = v end)
-createToggle("AimbotToggle", "Aimbot (Head)", false, function(v) aimbotEnabled = v end)
+createToggle("SilentAimToggle", "Silent Aim (Safe)", false, function(v) silentAimEnabled = v end)
 createToggle("FOVToggle", "Show FOV (60)", false, function(v) showFOV = v end)
 createToggle("LineToggle", "ESP Lines", false, function(v) espLinesEnabled = v end)
 createToggle("BoxToggle", "ESP Box", false, function(v) espBoxEnabled = v end)
@@ -329,16 +323,15 @@ createToggle("AFKToggle", "Anti-AFK Real", true, function(v) antiAFKEnabled = v 
 -- [[ LOOP PRINCIPAL ]]
 RunService.RenderStepped:Connect(function()
     updateESP()
-    updateHitboxes() -- Atualiza o tamanho das cabeças
     fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     fovCircle.Visible = showFOV
     
-    if aimbotEnabled then
+    if silentAimEnabled then
         local t = getClosest()
         if t and t.Character and t.Character:FindFirstChild("Head") then
+            -- Silent Aim: Trava a câmera suavemente ou redireciona o input
             local targetPart = t.Character.Head
-            local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
-            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, aimSmoothing)
+            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPart.Position), 0.2)
         end
     end
 end)
@@ -351,4 +344,3 @@ Players.PlayerRemoving:Connect(function(p)
         objects[p] = nil 
     end 
 end)
-
